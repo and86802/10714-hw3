@@ -247,7 +247,28 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        # Calculate the total number of elements in the current shape and new shape
+        current_size = 1
+        for dim in self.shape:
+            current_size *= dim
+        new_size = 1
+        for dim in new_shape:
+            new_size *= dim
+
+        # Check that the total number of elements matches
+        if current_size != new_size:
+            raise ValueError("Cannot reshape array: total number of elements must remain the same.")
+
+        # Check if the matrix is compact (memory contiguity)
+        if not self.is_compact():
+            raise ValueError("Cannot reshape a non-compact array.")
+
+        return self.make(
+            shape=new_shape, 
+            device=self.device, 
+            handle=self._handle,
+            offset=self._offset
+        )
         ### END YOUR SOLUTION
 
     def permute(self, new_axes):
@@ -272,7 +293,13 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return self.make(
+            shape=tuple([self.shape[i] for i in new_axes]),
+            strides=tuple([self.strides[i] for i in new_axes]),
+            device=self._device,
+            handle=self._handle,
+            offset=self._offset
+        )
         ### END YOUR SOLUTION
 
     def broadcast_to(self, new_shape):
@@ -296,7 +323,18 @@ class NDArray:
         """
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for i, (current_dim, new_dim) in enumerate(zip(self.shape, new_shape)):
+            if current_dim != 1 and current_dim != new_dim:
+                raise AssertionError(f"Cannot broadcast shape {self.shape} to {new_shape}")
+
+        new_strides = [0 if self.shape[i] != new_shape[i] else s for i, s in enumerate(self.strides)]
+        return self.make(
+            shape=new_shape,
+            strides=tuple(new_strides),
+            device=self._device,
+            handle=self._handle,
+            offset=self._offset
+        )
         ### END YOUR SOLUTION
 
     ### Get and set elements
@@ -352,6 +390,7 @@ class NDArray:
         """
 
         # handle singleton as tuple, everything as slices
+        print(f"before: {idxs}")
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
         idxs = tuple(
@@ -361,9 +400,15 @@ class NDArray:
             ]
         )
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
-
+        print(f"after: {idxs}")
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return self.make(
+            shape=tuple((s.stop - s.start) // s.step for s in idxs),
+            strides=tuple(s.step * stride for stride, s in zip(self.strides, idxs)),
+            device=self._device,
+            handle=self._handle,
+            offset=self._offset + int(math.fsum(s.start * stride for stride, s in zip(self.strides, idxs)))
+        )
         ### END YOUR SOLUTION
 
     def __setitem__(self, idxs, other):
