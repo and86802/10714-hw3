@@ -390,7 +390,7 @@ class NDArray:
         """
 
         # handle singleton as tuple, everything as slices
-        print(f"before: {idxs}")
+        # print(f"before: {idxs}")
         if not isinstance(idxs, tuple):
             idxs = (idxs,)
         idxs = tuple(
@@ -400,10 +400,10 @@ class NDArray:
             ]
         )
         assert len(idxs) == self.ndim, "Need indexes equal to number of dimensions"
-        print(f"after: {idxs}")
+        # print(f"after: {idxs}")
         ### BEGIN YOUR SOLUTION
         return self.make(
-            shape=tuple((s.stop - s.start) // s.step for s in idxs),
+            shape=tuple((s.stop - s.start + s.step - 1) // s.step for s in idxs),
             strides=tuple(s.step * stride for stride, s in zip(self.strides, idxs)),
             device=self._device,
             handle=self._handle,

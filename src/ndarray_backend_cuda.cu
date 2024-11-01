@@ -98,7 +98,22 @@ __global__ void CompactKernel(const scalar_t* a, scalar_t* out, size_t size, Cud
   size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  if (gid >= size) return;
+
+  CudaVec carry;
+  uint32_t m_idx = offset;
+
+  carry.size = shape.size;
+  carry.data[shape.size - 1] = 1;
+  for (int i = shape.size - 2; i >= 0; i--) {
+    carry.data[i] = carry.data[i + 1] * shape.data[i + 1];
+  }
+
+  for (size_t i = 0; i < shape.size; i++) {
+    m_idx += (gid / carry.data[i]) % shape.data[i] * strides.data[i];
+  }
+
+  out[gid] = a[m_idx];
   /// END SOLUTION
 }
 
