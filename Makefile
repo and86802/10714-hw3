@@ -5,8 +5,9 @@ all: lib
 
 lib:
 	@mkdir -p build
-	@cd build; cmake ..
+	@cd build; cmake -G "Unix Makefiles" ..
 	@cd build; $(MAKE)
+
 
 format:
 	python3 -m black .
