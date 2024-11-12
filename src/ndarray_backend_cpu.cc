@@ -48,7 +48,7 @@ void Fill(AlignedArray* out, scalar_t val) {
 enum stride_mode { INDEX_COMPACT, INDEX_EWISESETITEM, INDEX_SCALARSETITEM };
 
 
-void _stride_setter(const AlignedArray* a, AlignedArray* out, size_t size, vector<int32_t> shape,
+void CompactKernel(const AlignedArray* a, AlignedArray* out, size_t size, vector<int32_t> shape,
              vector<int32_t> strides, size_t offset, stride_mode mode, scalar_t val=-1) {
   size_t dim = shape.size();
   vector<int32_t> position(dim, 0);
@@ -102,7 +102,7 @@ void Compact(const AlignedArray& a, AlignedArray* out, std::vector<int32_t> shap
    *  function will implement here, so we won't repeat this note.)
    */
   /// BEGIN SOLUTION
-  _stride_setter(&a, out, out->size, shape, strides, offset, INDEX_COMPACT);
+  CompactKernel(&a, out, out->size, shape, strides, offset, INDEX_COMPACT);
   /// END SOLUTION
 }
 
@@ -119,7 +119,7 @@ void EwiseSetitem(const AlignedArray& a, AlignedArray* out, std::vector<int32_t>
    *   offset: offset of the *out* array (not a, which has zero offset, being compact)
    */
   /// BEGIN SOLUTION
-  _stride_setter(&a, out, a.size, shape, strides, offset, INDEX_EWISESETITEM);
+  CompactKernel(&a, out, a.size, shape, strides, offset, INDEX_EWISESETITEM);
   /// END SOLUTION
 }
 
@@ -140,7 +140,7 @@ void ScalarSetitem(const size_t size, scalar_t val, AlignedArray* out, std::vect
    */
 
   /// BEGIN SOLUTION
-  _stride_setter(nullptr, out, size, shape, strides, offset, INDEX_SCALARSETITEM, val);
+  CompactKernel(nullptr, out, size, shape, strides, offset, INDEX_SCALARSETITEM, val);
   /// END SOLUTION
 }
 

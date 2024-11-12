@@ -410,6 +410,42 @@ void ScalarGe (const CudaArray& a, scalar_t val, CudaArray* out) {
 // Elementwise and scalar operations
 ////////////////////////////////////////////////////////////////////////////////
 
+__global__ void MatmulKernel(const scalar_t* a, const scalar_t*b, scalar_t* out, uint32_t M, uint32_t N,
+  uint32_t P) {
+  uint32_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  uint32_t col = blockIdx.x * blockDim.x + threadIdx.x;
+  scalar_t sum = 0.0;
+
+  for (uint32_t k = 0; k < (N + TILE - 1) / TILE; ++k) {
+      __shared__ scalar_t tile_a[TILE][TILE];
+      __shared__ scalar_t tile_b[TILE][TILE];
+      
+      if (row < M && k * TILE + threadIdx.x < N) {
+          tile_a[threadIdx.y][threadIdx.x] = a[row * N + k * TILE + threadIdx.x];
+      } else {
+          tile_a[threadIdx.y][threadIdx.x] = 0.0;
+      }
+
+      if (col < P && k * TILE + threadIdx.y < N) {
+          tile_b[threadIdx.y][threadIdx.x] = b[(k * TILE + threadIdx.y) * P + col];
+      } else {
+          tile_b[threadIdx.y][threadIdx.x] = 0.0;
+      }
+
+      __syncthreads();
+
+      for (uint32_t e = 0; e < TILE; ++e) {
+          sum += tile_a[threadIdx.y][e] * tile_b[e][threadIdx.x];
+      }
+
+      __syncthreads();
+  }
+
+  if (row < M && col < P) {
+      out[row * P + col] = sum;
+  }
+}
+
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
             uint32_t P) {
   /**
@@ -435,7 +471,10 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    */
 
   /// BEGIN SOLUTION
-  assert(false && "Not Implemented");
+  dim3 blockDim(TILE, TILE);
+  dim3 gridDim((P + TILE - 1) / TILE, (M + TILE - 1) / TILE);
+
+  MatmulKernel<<<gridDim, blockDim>>>(a.ptr, b.ptr, out->ptr, M, N, P);
   /// END SOLUTION
 }
 
@@ -562,7 +601,7 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
   m.def("ewise_exp", EwiseExp);
   m.def("ewise_tanh", EwiseTanh);
 
-  // m.def("matmul", Matmul);
+  m.def("matmul", Matmul);
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);
